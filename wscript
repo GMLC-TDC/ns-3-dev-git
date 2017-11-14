@@ -12,7 +12,7 @@ def options(opt):
                    help=('Path to HELICS for federated simulator integration'),
                    default='', dest='with_helics')
 
-REQUIRED_BOOST_LIBS = ['system', 'filesystem', 'program_options']
+REQUIRED_BOOST_LIBS = ['mpi', 'system', 'filesystem', 'program_options']
 
 def required_boost_libs(conf):
     conf.env['REQUIRED_BOOST_LIBS'] += REQUIRED_BOOST_LIBS
