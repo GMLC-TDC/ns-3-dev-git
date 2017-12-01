@@ -76,9 +76,7 @@ PeerManagementProtocolMac::Receive (Ptr<Packet> const_packet, const WifiMacHeade
       MgtBeaconHeader beacon_hdr;
       packet->RemoveHeader (beacon_hdr);
       MeshInformationElementVector elements;
-      // To determine header size here, we can rely on the knowledge that 
-      // this is the last header to remove.
-      packet->RemoveHeader (elements, packet->GetSize ());
+      packet->RemoveHeader (elements);
       Ptr<IeBeaconTiming> beaconTiming = DynamicCast<IeBeaconTiming> (elements.FindFirst (IE_BEACON_TIMING));
       Ptr<IeMeshId> meshId = DynamicCast<IeMeshId> (elements.FindFirst (IE_MESH_ID));
 
@@ -176,10 +174,9 @@ PeerManagementProtocolMac::Receive (Ptr<Packet> const_packet, const WifiMacHeade
           NS_FATAL_ERROR ("Unknown Self-protected Action type: " << actionValue.selfProtectedAction);
         }
       Ptr<IePeerManagement> peerElement;
+      //Peer Management element is the last element in this frame - so, we can use MeshInformationElementVector
       MeshInformationElementVector elements;
-      // To determine header size here, we can rely on the knowledge that 
-      // this is the last header to remove.
-      packet->RemoveHeader (elements, packet->GetSize ());
+      packet->RemoveHeader (elements);
       peerElement = DynamicCast<IePeerManagement>(elements.FindFirst (IE_MESH_PEERING_MANAGEMENT));
 
       NS_ASSERT (peerElement != 0);

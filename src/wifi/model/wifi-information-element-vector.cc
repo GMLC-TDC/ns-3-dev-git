@@ -72,22 +72,15 @@ WifiInformationElementVector::Serialize (Buffer::Iterator start) const
 uint32_t
 WifiInformationElementVector::Deserialize (Buffer::Iterator start)
 {
-  NS_FATAL_ERROR ("This variant should not be called on a variable-sized header");
-  return 0;
-}
-
-uint32_t
-WifiInformationElementVector::Deserialize (Buffer::Iterator start, Buffer::Iterator end)
-{
-  uint32_t size = start.GetDistanceFrom (end);
+  Buffer::Iterator i = start;
+  uint32_t size = start.GetSize ();
   while (size > 0)
     {
-      uint32_t deserialized = DeserializeSingleIe (start);
-      start.Next (deserialized);
-      NS_ASSERT (deserialized <= size);
+      uint32_t deserialized = DeserializeSingleIe (i);
+      i.Next (deserialized);
       size -= deserialized;
     }
-  return size;
+  return i.GetDistanceFrom (start);
 }
 
 uint32_t
