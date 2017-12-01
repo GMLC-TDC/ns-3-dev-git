@@ -34,12 +34,4 @@ Chunk::GetTypeId (void)
   return tid;
 }
 
-// This default implementation is provided for backward compatibility
-// reasons.  Subclasses should implement this method themselves.
-uint32_t
-Chunk::Deserialize (Buffer::Iterator start, Buffer::Iterator end)
-{
-  return Deserialize (start);
-}
-
 } // namespace ns3

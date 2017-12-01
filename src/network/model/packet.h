@@ -316,25 +316,12 @@ public:
   /**
    * \brief Deserialize and remove the header from the internal buffer.
    *
-   * This method invokes Header::Deserialize (begin) and should be used for
-   * variable-length headers.
+   * This method invokes Header::Deserialize.
    *
    * \param header a reference to the header to remove from the internal buffer.
    * \returns the number of bytes removed from the packet.
    */
   uint32_t RemoveHeader (Header &header);
-  /**
-   * \brief Deserialize and remove the header from the internal buffer.
-   *
-   * This method invokes Header::Deserialize (begin, end) and should be 
-   * used for variable-length headers (where the size is determined somehow
-   * by the caller).
-   *
-   * \param header a reference to the header to remove from the internal buffer.
-   * \param size number of bytes to deserialize
-   * \returns the number of bytes removed from the packet.
-   */
-  uint32_t RemoveHeader (Header &header, uint32_t size);
   /**
    * \brief Deserialize but does _not_ remove the header from the internal buffer.
    * s
@@ -344,18 +331,6 @@ public:
    * \returns the number of bytes read from the packet.
    */
   uint32_t PeekHeader (Header &header) const;
-  /**
-   * \brief Deserialize but does _not_ remove the header from the internal buffer.
-   * s
-   * This method invokes Header::Deserialize (begin, end) and should be used
-   * for variable-length headers (where the size is determined somehow
-   * by the caller).
-   *
-   * \param header a reference to the header to read from the internal buffer.
-   * \param size number of bytes to deserialize
-   * \returns the number of bytes read from the packet.
-   */
-  uint32_t PeekHeader (Header &header, uint32_t size) const;
   /**
    * \brief Add trailer to this packet.
    *
