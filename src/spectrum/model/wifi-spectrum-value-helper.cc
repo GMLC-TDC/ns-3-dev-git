@@ -38,20 +38,17 @@ struct WifiSpectrumModelId
    * Constructor
    * \param f the frequency in Mhz
    * \param w the channel width in Mhz
-   * \param b the width of each band (Hz)
    */ 
-  WifiSpectrumModelId (uint32_t f, uint8_t w, double b);
+  WifiSpectrumModelId (uint32_t f, uint8_t w);
   uint32_t m_centerFrequency;  ///< center frequency
   uint8_t m_channelWidth; ///< channel width
-  double m_bandBandwidth; ///< width of each band (Hz)
 };
 
-WifiSpectrumModelId::WifiSpectrumModelId (uint32_t f, uint8_t w, double b)
+WifiSpectrumModelId::WifiSpectrumModelId (uint32_t f, uint8_t w)
   : m_centerFrequency (f),
-    m_channelWidth (w),
-    m_bandBandwidth (b)
+    m_channelWidth (w)
 {
-  NS_LOG_FUNCTION (this << f << (uint16_t)w << b);
+  NS_LOG_FUNCTION (this << f << (uint16_t)w);
 }
 
 /**
@@ -63,12 +60,7 @@ WifiSpectrumModelId::WifiSpectrumModelId (uint32_t f, uint8_t w, double b)
 bool
 operator < (const WifiSpectrumModelId& a, const WifiSpectrumModelId& b)
 {
-  return ( (a.m_centerFrequency < b.m_centerFrequency)
-          || ((a.m_centerFrequency == b.m_centerFrequency) &&
-              (a.m_channelWidth < b.m_channelWidth))
-          || ((a.m_centerFrequency == b.m_centerFrequency) && //to cover coexistence of 11ax with legacy case
-              (a.m_channelWidth == b.m_channelWidth) &&
-              (a.m_bandBandwidth < b.m_bandBandwidth)));
+  return ( (a.m_centerFrequency < b.m_centerFrequency) || ( (a.m_centerFrequency == b.m_centerFrequency) && (a.m_channelWidth < b.m_channelWidth)));
 }
 
 static std::map<WifiSpectrumModelId, Ptr<SpectrumModel> > g_wifiSpectrumModelMap; ///< static initializer for the class
@@ -78,7 +70,7 @@ WifiSpectrumValueHelper::GetSpectrumModel (uint32_t centerFrequency, uint8_t cha
 {
   NS_LOG_FUNCTION (centerFrequency << (uint16_t)channelWidth << bandBandwidth << (uint16_t)guardBandwidth);
   Ptr<SpectrumModel> ret;
-  WifiSpectrumModelId key (centerFrequency, channelWidth, bandBandwidth);
+  WifiSpectrumModelId key (centerFrequency, channelWidth);
   std::map<WifiSpectrumModelId, Ptr<SpectrumModel> >::iterator it = g_wifiSpectrumModelMap.find (key);
   if (it != g_wifiSpectrumModelMap.end ())
     {
