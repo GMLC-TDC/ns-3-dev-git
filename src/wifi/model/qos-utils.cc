@@ -31,18 +31,26 @@ QosUtilsMapTidToAc (uint8_t tid)
   switch (tid)
     {
     case 0:
-    case 3:
       return AC_BE;
       break;
     case 1:
+      return AC_BK;
+      break;
     case 2:
       return AC_BK;
       break;
+    case 3:
+      return AC_BE;
+      break;
     case 4:
+      return AC_VI;
+      break;
     case 5:
       return AC_VI;
       break;
     case 6:
+      return AC_VO;
+      break;
     case 7:
       return AC_VO;
       break;
