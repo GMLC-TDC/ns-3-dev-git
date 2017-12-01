@@ -415,7 +415,8 @@ int main (int argc, char *argv[])
       if (wifiType == "ns3::YansWifiPhy")
         {
           mac.SetType ("ns3::StaWifiMac",
-                       "Ssid", SsidValue (ssid));
+                       "Ssid", SsidValue (ssid),
+                       "ActiveProbing", BooleanValue (false));
           staDevice = wifi.Install (phy, mac, wifiStaNode);
           mac.SetType ("ns3::ApWifiMac",
                        "Ssid", SsidValue (ssid));
@@ -425,7 +426,8 @@ int main (int argc, char *argv[])
       else if (wifiType == "ns3::SpectrumWifiPhy")
         {
           mac.SetType ("ns3::StaWifiMac",
-                       "Ssid", SsidValue (ssid));
+                       "Ssid", SsidValue (ssid),
+                       "ActiveProbing", BooleanValue (false));
           staDevice = wifi.Install (spectrumPhy, mac, wifiStaNode);
           mac.SetType ("ns3::ApWifiMac",
                        "Ssid", SsidValue (ssid));

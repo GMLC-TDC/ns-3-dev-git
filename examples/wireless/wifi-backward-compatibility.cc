@@ -123,7 +123,8 @@ int main (int argc, char *argv[])
   wifi.SetRemoteStationManager ("ns3::" + staRaa + "WifiManager");
 
   mac.SetType ("ns3::StaWifiMac",
-               "Ssid", SsidValue (ssid));
+               "Ssid", SsidValue (ssid),
+               "ActiveProbing", BooleanValue (false));
 
   NetDeviceContainer staDevice;
   staDevice = wifi.Install (phy, mac, wifiStaNode);
