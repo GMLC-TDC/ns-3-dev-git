@@ -36,6 +36,7 @@ class BlockAckAgreement
 
 
 public:
+  BlockAckAgreement ();
   /**
    * Constructor for BlockAckAgreement with given peer and TID.
    *

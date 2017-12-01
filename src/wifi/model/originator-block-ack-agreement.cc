@@ -23,6 +23,14 @@
 
 namespace ns3 {
 
+OriginatorBlockAckAgreement::OriginatorBlockAckAgreement ()
+  : BlockAckAgreement (),
+    m_state (PENDING),
+    m_sentMpdus (0),
+    m_needBlockAckReq (false)
+{
+}
+
 OriginatorBlockAckAgreement::OriginatorBlockAckAgreement (Mac48Address recipient, uint8_t tid)
   : BlockAckAgreement (recipient, tid),
     m_state (PENDING),
