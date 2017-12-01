@@ -368,6 +368,7 @@ MgtProbeResponseHeader::Print (std::ostream &os) const
 {
   os << "ssid=" << m_ssid << ", "
      << "rates=" << m_rates << ", "
+     << "DSSS Parameter Set=" << m_dsssParameterSet << " , "
      << "ERP information=" << m_erpInformation << ", "
      << "HT Capabilities=" << m_htCapability << " , "
      << "HT Operation=" << m_htOperation << " , "
