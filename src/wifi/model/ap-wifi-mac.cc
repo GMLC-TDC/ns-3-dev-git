@@ -183,6 +183,13 @@ ApWifiMac::SetBeaconInterval (Time interval)
   m_beaconInterval = interval;
 }
 
+void
+ApWifiMac::StartBeaconing (void)
+{
+  NS_LOG_FUNCTION (this);
+  SendOneBeacon ();
+}
+
 int64_t
 ApWifiMac::AssignStreams (int64_t stream)
 {

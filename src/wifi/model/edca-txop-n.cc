@@ -106,6 +106,18 @@ EdcaTxopN::GetBaAgreementExists (Mac48Address address, uint8_t tid) const
   return m_baManager->ExistsAgreement (address, tid);
 }
 
+uint32_t
+EdcaTxopN::GetNOutstandingPacketsInBa (Mac48Address address, uint8_t tid) const
+{
+  return m_baManager->GetNBufferedPackets (address, tid);
+}
+
+uint32_t
+EdcaTxopN::GetNRetryNeededPackets (Mac48Address recipient, uint8_t tid) const
+{
+  return m_baManager->GetNRetryNeededPackets (recipient, tid);
+}
+
 void
 EdcaTxopN::CompleteAmpduTransfer (Mac48Address recipient, uint8_t tid)
 {
@@ -132,6 +144,13 @@ EdcaTxopN::GetTypeOfStation (void) const
 {
   NS_LOG_FUNCTION (this);
   return m_typeOfStation;
+}
+
+bool
+EdcaTxopN::NeedsAccess (void) const
+{
+  NS_LOG_FUNCTION (this);
+  return !m_queue->IsEmpty () || m_currentPacket != 0 || m_baManager->HasPackets ();
 }
 
 uint16_t EdcaTxopN::GetNextSequenceNumberFor (WifiMacHeader *hdr)

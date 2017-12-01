@@ -53,6 +53,12 @@ InterferenceHelper::Event::GetPacket (void) const
 }
 
 Time
+InterferenceHelper::Event::GetDuration (void) const
+{
+  return m_endTime - m_startTime;
+}
+
+Time
 InterferenceHelper::Event::GetStartTime (void) const
 {
   return m_startTime;
