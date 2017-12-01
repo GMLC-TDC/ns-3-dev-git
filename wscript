@@ -241,9 +241,6 @@ def options(opt):
                    help=('Log all events in a json file with the name of the executable (which must call CommandLine::Parse(argc, argv)'),
                    action="store_true", default=False,
                    dest='enable_desmetrics')
-    opt.add_option('--cxx-standard',
-                   help=('Compile NS-3 with the given C++ standard'),
-                   type='string', default='-std=c++11', dest='cxx_standard')
 
     # options provided in subdirectories
     opt.recurse('src')
@@ -448,12 +445,8 @@ def configure(conf):
                 conf.report_optional_feature("static", "Static build", False,
                                              "Link flag -Wl,--whole-archive,-Bstatic does not work")
 
-    # Enables C++-11 support by default, unless user specified another option
-    # Warn the user if the CXX Standard flag provided was not recognized  
-    if conf.check_compilation_flag(Options.options.cxx_standard):
-        env.append_value('CXXFLAGS', Options.options.cxx_standard)
-    else:
-        Logs.warn("CXX Standard flag " + Options.options.cxx_standard + " was not recognized, using compiler's default")
+    # Enable C++-11 support
+    env.append_value('CXXFLAGS', '-std=c++11')
 
     # Set this so that the lists won't be printed at the end of this
     # configure command.
