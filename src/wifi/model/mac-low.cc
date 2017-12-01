@@ -1251,8 +1251,7 @@ MacLow::GetAckTxVectorForData (Mac48Address to, WifiMode dataTxMode) const
 Time
 MacLow::CalculateOverallTxTime (Ptr<const Packet> packet,
                                 const WifiMacHeader* hdr,
-                                const MacLowTransmissionParameters& params,
-                                uint32_t fragmentSize) const
+                                const MacLowTransmissionParameters& params) const
 {
   Time txTime = Seconds (0);
   if (params.MustSendRts ())
@@ -1263,16 +1262,33 @@ MacLow::CalculateOverallTxTime (Ptr<const Packet> packet,
       txTime += Time (GetSifs () * 2);
     }
   WifiTxVector dataTxVector = GetDataTxVector (packet, hdr);
-  uint32_t dataSize;
-  if (fragmentSize > 0)
+  uint32_t dataSize = GetSize (packet, hdr, m_ampdu);
+  txTime += m_phy->CalculateTxDuration (dataSize, dataTxVector, m_phy->GetFrequency ());
+  txTime += GetSifs ();
+  if (params.MustWaitAck ())
     {
-      Ptr<const Packet> fragment = Create<Packet> (fragmentSize);
-      dataSize = GetSize (fragment, hdr, m_ampdu);
+      txTime += GetAckDuration (hdr->GetAddr1 (), dataTxVector);
     }
-  else
+  return txTime;
+}
+
+Time
+MacLow::CalculateOverallTxFragmentTime (Ptr<const Packet> packet,
+                                        const WifiMacHeader* hdr,
+                                        const MacLowTransmissionParameters& params,
+                                        uint32_t fragmentSize) const
+{
+  Time txTime = Seconds (0);
+  if (params.MustSendRts ())
     {
-      dataSize = GetSize (packet, hdr, m_ampdu);
+      WifiTxVector rtsTxVector = GetRtsTxVector (packet, hdr);
+      txTime += m_phy->CalculateTxDuration (GetRtsSize (), rtsTxVector, m_phy->GetFrequency ());
+      txTime += GetCtsDuration (hdr->GetAddr1 (), rtsTxVector);
+      txTime += Time (GetSifs () * 2);
     }
+  WifiTxVector dataTxVector = GetDataTxVector (packet, hdr);
+  Ptr<const Packet> fragment = Create<Packet> (fragmentSize);
+  uint32_t dataSize = GetSize (fragment, hdr, m_ampdu);
   txTime += m_phy->CalculateTxDuration (dataSize, dataTxVector, m_phy->GetFrequency ());
   txTime += GetSifs ();
   if (params.MustWaitAck ())
