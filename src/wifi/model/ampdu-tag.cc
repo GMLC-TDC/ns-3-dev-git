@@ -33,6 +33,10 @@ AmpduTag::GetTypeId (void)
     .SetParent<Tag> ()
     .SetGroupName ("Wifi")
     .AddConstructor<AmpduTag> ()
+    .AddAttribute ("AmpduExists", "The value that indicates that the packet contains an AMPDU",
+                   UintegerValue (false),
+                   MakeUintegerAccessor (&AmpduTag::GetAmpdu),
+                   MakeUintegerChecker<uint8_t> ())
   ;
   return tid;
 }
@@ -44,9 +48,16 @@ AmpduTag::GetInstanceTypeId (void) const
 }
 
 AmpduTag::AmpduTag ()
-  : m_nbOfMpdus (0),
+  : m_ampdu (0),
+    m_nbOfMpdus (0),
     m_duration (Seconds(0))
 {
+}
+
+void
+AmpduTag::SetAmpdu (bool supported)
+{
+  m_ampdu = supported;
 }
 
 void
@@ -72,6 +83,7 @@ AmpduTag::GetSerializedSize (void) const
 void
 AmpduTag::Serialize (TagBuffer i) const
 {
+  i.WriteU8 (m_ampdu);
   i.WriteU8 (m_nbOfMpdus);
   int64_t duration = m_duration.GetTimeStep ();
   i.Write ((const uint8_t *)&duration, sizeof(int64_t));
@@ -80,10 +92,17 @@ AmpduTag::Serialize (TagBuffer i) const
 void
 AmpduTag::Deserialize (TagBuffer i)
 {
+  m_ampdu = i.ReadU8 ();
   m_nbOfMpdus = i.ReadU8 ();
   int64_t duration;
   i.Read ((uint8_t *)&duration, 8);
   m_duration = Time (duration);
+}
+
+bool
+AmpduTag::GetAmpdu () const
+{
+  return (m_ampdu == 1) ? true : false;
 }
 
 uint8_t
@@ -101,7 +120,8 @@ AmpduTag::GetRemainingAmpduDuration () const
 void
 AmpduTag::Print (std::ostream &os) const
 {
-  os << "Remaining number of MPDUs=" << m_nbOfMpdus
+  os << "A-MPDU exists=" << m_ampdu
+     << " Remaining number of MPDUs=" << m_nbOfMpdus
      << " Remaining A-MPDU duration=" << m_duration;
 }
 
