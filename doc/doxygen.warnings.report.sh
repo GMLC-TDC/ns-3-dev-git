@@ -263,9 +263,6 @@ REappend filter_blacklistRE "Schedule(Time"
 REappend filter_blacklistRE "ScheduleWithContext(uint32_t"
 REappend filter_blacklistRE "Schedule\\(Now\\|Destroy\\)(\\(MEM\\|void\\)"
 
-#   ATTRIBUTE_HELPER_CPP( and _HEADER(
-REappend filter_blacklistRE "ATTRIBUTE_HELPER_\\(CPP\\|HEADER\\)("
-
 filter_outRE=""
 if [ $filter_blacklist -eq 1 ]; then
     echo "Filtering out blacklist: \"$filter_blacklistRE\""
@@ -283,8 +280,6 @@ if [ "$filter_out" != "" ] ; then
 fi
 
 #  Show the resulting filters
-echo
-echo "Net result of all filters:"
 if [ "${filter_inRE:-}" != "" ] ; then
     echo "Filtering in \"$filter_inRE\""
 fi
