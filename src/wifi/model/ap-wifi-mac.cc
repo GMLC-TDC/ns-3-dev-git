@@ -641,22 +641,7 @@ ApWifiMac::GetVhtOperation (void) const
             }
           operation.SetMaxVhtMcsPerNss (nss, maxMcs);
         }
-    }
-  return operation;
-}
 
-HeOperation
-ApWifiMac::GetHeOperation (void) const
-{
-  NS_LOG_FUNCTION (this);
-  HeOperation operation;
-  if (m_heSupported)
-    {
-      operation.SetHeSupported (1);
-      for (uint8_t nss = 1; nss <= m_phy->GetMaxSupportedRxSpatialStreams (); nss++)
-        {
-          operation.SetMaxHeMcsPerNss (nss, 11); //TBD: hardcode to 11 for now since we assume all MCS values are supported
-        }
     }
   return operation;
 }
@@ -706,7 +691,6 @@ ApWifiMac::SendProbeResp (Mac48Address to)
   if (m_heSupported)
     {
       probe.SetHeCapabilities (GetHeCapabilities ());
-      probe.SetHeOperation (GetHeOperation ());
     }
   packet->AddHeader (probe);
 
@@ -765,7 +749,6 @@ ApWifiMac::SendAssocResp (Mac48Address to, bool success)
   if (m_heSupported)
     {
       assoc.SetHeCapabilities (GetHeCapabilities ());
-      assoc.SetHeOperation (GetHeOperation ());
     }
   packet->AddHeader (assoc);
 
@@ -821,7 +804,6 @@ ApWifiMac::SendOneBeacon (void)
   if (m_heSupported)
     {
       beacon.SetHeCapabilities (GetHeCapabilities ());
-      beacon.SetHeOperation (GetHeOperation ());
     }
   packet->AddHeader (beacon);
 
