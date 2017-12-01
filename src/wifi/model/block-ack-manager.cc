@@ -29,6 +29,11 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("BlockAckManager");
 
+BlockAckManager::Item::Item ()
+{
+  NS_LOG_FUNCTION (this);
+}
+
 BlockAckManager::Item::Item (Ptr<const Packet> packet, const WifiMacHeader &hdr, Time tStamp)
   : packet (packet),
     hdr (hdr),
@@ -133,7 +138,7 @@ BlockAckManager::CreateAgreement (const MgtAddBaRequestHeader *reqHdr, Mac48Addr
       agreement.SetDelayedBlockAck ();
     }
   agreement.SetState (OriginatorBlockAckAgreement::PENDING);
-  PacketQueue queue;
+  PacketQueue queue (0);
   std::pair<OriginatorBlockAckAgreement, PacketQueue> value (agreement, queue);
   m_agreements.insert (std::make_pair (key, value));
   m_blockPackets (recipient, reqHdr->GetTid ());
