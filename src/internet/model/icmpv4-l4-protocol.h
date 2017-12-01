@@ -107,9 +107,8 @@ public:
    * \brief Send a Time Exceeded ICMP error
    * \param header the original IP header
    * \param orgData the original packet
-   * \param isFragment true if the opcode must be FRAGMENT_REASSEMBLY
    */
-  void SendTimeExceededTtl (Ipv4Header header, Ptr<const Packet> orgData, bool isFragment);
+  void SendTimeExceededTtl (Ipv4Header header, Ptr<const Packet> orgData);
 
   /**
    * \brief Send a Time Exceeded ICMP error

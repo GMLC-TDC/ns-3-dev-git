@@ -179,7 +179,7 @@ Icmpv4L4Protocol::SendDestUnreach (Ipv4Header header, Ptr<const Packet> orgData,
 }
 
 void 
-Icmpv4L4Protocol::SendTimeExceededTtl (Ipv4Header header, Ptr<const Packet> orgData, bool isFragment)
+Icmpv4L4Protocol::SendTimeExceededTtl (Ipv4Header header, Ptr<const Packet> orgData)
 {
   NS_LOG_FUNCTION (this << header << *orgData);
   Ptr<Packet> p = Create<Packet> ();
@@ -187,14 +187,7 @@ Icmpv4L4Protocol::SendTimeExceededTtl (Ipv4Header header, Ptr<const Packet> orgD
   time.SetHeader (header);
   time.SetData (orgData);
   p->AddHeader (time);
-  if (!isFragment)
-    {
-      SendMessage (p, header.GetSource (), Icmpv4Header::TIME_EXCEEDED, Icmpv4TimeExceeded::TIME_TO_LIVE);
-    }
-  else
-    {
-      SendMessage (p, header.GetSource (), Icmpv4Header::TIME_EXCEEDED, Icmpv4TimeExceeded::FRAGMENT_REASSEMBLY);
-    }
+  SendMessage (p, header.GetSource (), Icmpv4Header::TIME_EXCEEDED, Icmpv4TimeExceeded::TIME_TO_LIVE);
 }
 
 void
