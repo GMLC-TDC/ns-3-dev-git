@@ -175,7 +175,7 @@ EdcaTxopN::NotifyAccessGranted (void)
           return;
         }
       /* check if packets need retransmission are stored in BlockAckManager */
-      m_currentPacket = m_baManager->GetNextPacket (m_currentHdr, true);
+      m_currentPacket = m_baManager->GetNextPacket (m_currentHdr);
       if (m_currentPacket == 0)
         {
           Ptr<const WifiMacQueueItem> item = m_queue->PeekFirstAvailable (m_qosBlockedDestinations);
@@ -331,7 +331,7 @@ void EdcaTxopN::NotifyInternalCollision (void)
     {
       if (m_baManager->HasPackets ())
         {
-          packet = m_baManager->GetNextPacket (header, false);
+          packet = m_baManager->PeekNextPacket (header);
         }
       else
         {
@@ -714,7 +714,7 @@ EdcaTxopN::RestartAccessIfNeeded (void)
         }
       else if (m_baManager->HasPackets ())
         {
-          packet = m_baManager->GetNextPacket (hdr, false);
+          packet = m_baManager->PeekNextPacket (hdr);
         }
       else
         {
@@ -755,7 +755,7 @@ EdcaTxopN::StartAccessIfNeeded (void)
         }
       else if (m_baManager->HasPackets ())
         {
-          packet = m_baManager->GetNextPacket (hdr, false);
+          packet = m_baManager->PeekNextPacket (hdr);
         }
       else
         {
@@ -813,7 +813,7 @@ EdcaTxopN::StartNextPacket (void)
   Time txopLimit = GetTxopLimit ();
   NS_ASSERT (txopLimit.IsZero () || Simulator::Now () - m_startTxop <= txopLimit);
   WifiMacHeader hdr = m_currentHdr;
-  Ptr<const Packet> peekedPacket = m_baManager->GetNextPacket (hdr, true);
+  Ptr<const Packet> peekedPacket = m_baManager->GetNextPacket (hdr);
   if (peekedPacket == 0)
     {
       Ptr<const WifiMacQueueItem> peekedItem = m_queue->PeekByTidAndAddress (m_currentHdr.GetQosTid (),
