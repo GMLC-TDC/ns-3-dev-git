@@ -46,6 +46,12 @@ public:
    */
   SnrTag ();
 
+  /**
+   * Create a SnrTag with the given snr value
+   * \param snr the given SNR value
+   */
+  SnrTag (double snr);
+
   uint32_t GetSerializedSize (void) const;
   void Serialize (TagBuffer i) const;
   void Deserialize (TagBuffer i);

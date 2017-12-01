@@ -55,6 +55,11 @@ SnrTag::SnrTag ()
 {
 }
 
+SnrTag::SnrTag (double snr)
+  : m_snr (snr)
+{
+}
+
 uint32_t
 SnrTag::GetSerializedSize (void) const
 {
