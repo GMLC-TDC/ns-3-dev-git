@@ -598,7 +598,7 @@ ATTRIBUTE_HELPER_CPP (HtCapabilities);
  * output stream output operator
  *
  * \param os output stream
- * \param htcapabilities the HT capabilities
+ * \param htcapabilities
  *
  * \returns output stream
  */
@@ -620,7 +620,7 @@ operator << (std::ostream &os, const HtCapabilities &htcapabilities)
  * input stream input operator
  *
  * \param is input stream
- * \param htcapabilities the HT capabilities
+ * \param htcapabilities
  *
  * \returns input stream
  */

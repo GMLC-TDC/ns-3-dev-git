@@ -496,7 +496,7 @@ ATTRIBUTE_HELPER_CPP (HtOperation);
  * output stream output operator
  *
  * \param os output stream
- * \param htOperation the HT operation
+ * \param htOperation
  *
  * \returns output stream
  */
@@ -514,7 +514,7 @@ operator << (std::ostream &os, const HtOperation &htOperation)
  * input stream input operator
  *
  * \param is input stream
- * \param htOperation the HT operation
+ * \param htOperation
  *
  * \returns input stream
  */
