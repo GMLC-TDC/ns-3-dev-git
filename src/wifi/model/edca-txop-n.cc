@@ -215,6 +215,7 @@ EdcaTxopN::NotifyAccessGranted (void)
             }
         }
     }
+  m_currentParams.DisableOverrideDurationId ();
   if (m_currentHdr.GetAddr1 ().IsGroup ())
     {
       m_currentParams.DisableRts ();
@@ -838,6 +839,7 @@ EdcaTxopN::StartNextPacket (void)
         }
       return;
     }
+  m_currentParams.DisableOverrideDurationId ();
   m_currentParams.DisableNextData ();
   if (m_currentHdr.IsQosData () && m_currentHdr.IsQosBlockAck ())
     {
@@ -1383,6 +1385,7 @@ EdcaTxopN::SendBlockAckRequest (const Bar &bar)
 
   m_currentParams.DisableRts ();
   m_currentParams.DisableNextData ();
+  m_currentParams.DisableOverrideDurationId ();
   if (bar.immediate)
     {
       if (m_blockAckType == BASIC_BLOCK_ACK)
@@ -1494,6 +1497,7 @@ EdcaTxopN::SendAddBaRequest (Mac48Address dest, uint8_t tid, uint16_t startSeq,
   m_currentParams.EnableAck ();
   m_currentParams.DisableRts ();
   m_currentParams.DisableNextData ();
+  m_currentParams.DisableOverrideDurationId ();
 
   m_low->StartTransmission (m_currentPacket, &m_currentHdr, m_currentParams, this);
 }
