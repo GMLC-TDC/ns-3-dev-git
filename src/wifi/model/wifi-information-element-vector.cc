@@ -130,6 +130,12 @@ WifiInformationElementVector::Print (std::ostream & os) const
     }
 }
 
+void
+WifiInformationElementVector::SetMaxSize (uint16_t size)
+{
+  m_maxSize = size;
+}
+
 WifiInformationElementVector::Iterator
 WifiInformationElementVector::Begin ()
 {
@@ -165,6 +171,29 @@ WifiInformationElementVector::FindFirst (WifiInformationElementId id) const
     }
   return 0;
 }
+
+
+namespace {
+
+/// PIEComparator structure
+struct PIEComparator
+{
+  /**
+   * comparison operator
+   *
+   * \param a left side
+   * \param b right side
+   * \returns true if less than
+   */
+  bool
+  operator () (Ptr<WifiInformationElement> a, Ptr<WifiInformationElement> b) const
+  {
+    return ((*PeekPointer (a)) < (*PeekPointer (b)));
+  }
+};
+
+}
+
 
 uint32_t
 WifiInformationElementVector::GetSize () const

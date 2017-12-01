@@ -85,6 +85,12 @@ WifiInformationElement::DeserializeIfPresent (Buffer::Iterator i)
 }
 
 bool
+WifiInformationElement::operator< (WifiInformationElement const & a) const
+{
+  return (ElementId () < a.ElementId ());
+}
+
+bool
 WifiInformationElement::operator== (WifiInformationElement const & a) const
 {
   if (ElementId () != a.ElementId ())
