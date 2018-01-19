@@ -99,6 +99,7 @@ int main()
 
 
     conf.env.append_value('NS3_MODULE_PATH', os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'build', 'default')))
+    conf.env.append_value('NS3_MODULE_PATH', os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'lib', 'helics')))
     conf.env.append_value('NS3_MODULE_PATH', os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'lib')))
 
     conf.env['INCLUDES_HELICS'] = [
@@ -107,14 +108,17 @@ int main()
         ]
     conf.env['LIBPATH_HELICS'] = [
             os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'build', 'default')),
-            os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'lib'))
+            os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'lib', 'helics')),
+            os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'lib')),
+            os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'lib', 'helics')),
+            os.path.abspath(os.path.join(conf.env['WITH_HELICS'], 'lib64'))
         ]
 
     conf.env['DEFINES_HELICS'] = ['NS3_HELICS']
 
-    conf.env['HELICS'] = conf.check(fragment=helics_test_code, lib='helics', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
+    conf.env['HELICS'] = conf.check(fragment=helics_test_code, lib='helics-static', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
 
-    conf.env.append_value('LIB_HELICS', 'helics')
+    conf.env.append_value('LIB_HELICS', 'helics-static')
     conf.report_optional_feature("helics", "NS-3 HELICS Integration", conf.env['HELICS'], "HELICS library not found")
 
     if conf.env['HELICS']:
@@ -136,10 +140,12 @@ def build(bld):
     if 'helics' in bld.env['MODULES_NOT_BUILT']:
         return
 
-    module = bld.create_ns3_module('helics', ['core'])
+    module = bld.create_ns3_module('helics', ['core', 'internet'])
     module.source = [
         'model/helics.cc',
+        'model/helics-application.cc',
         'model/helics-simulator-impl.cc',
+        'model/helics-id-tag.cc',
         'helper/helics-helper.cc',
         ]
     module_test = bld.create_ns3_module_test_library('helics')
@@ -154,7 +160,9 @@ def build(bld):
     headers.module = 'helics'
     headers.source = [
         'model/helics.h',
+        'model/helics-application.h',
         'model/helics-simulator-impl.h',
+        'model/helics-id-tag.h',
         'helper/helics-helper.h',
         ]
 
