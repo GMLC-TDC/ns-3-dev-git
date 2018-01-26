@@ -21,7 +21,7 @@ main (int argc, char *argv[])
 
   GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::HelicsSimulatorImpl"));
 
-  helics.SetupFederate();
+  helics.SetupApplicationFederate();
   NS_LOG_INFO ("Simulator Impl bound, about to Run simulator");
 
   Simulator::Run ();
