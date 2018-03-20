@@ -31,11 +31,14 @@ static bool argumentParser (int argc, const char * const *argv, po::variables_ma
 
 int main (int argc, char *argv[])
 {
+    std::cout<<"Just start main function..."<<std::endl;
     po::variables_map vm;
+    
     if (argumentParser (argc, argv, vm)) {
+        std::cout<<"Result of argumentParser() is true"<<std::endl;
         return 0;
     }
-
+    std::cout<<"ArgumentParser() is OK"<<std::endl;
     std::string targetfederate = "ns3";
     if (vm.count("target") > 0)
     {
@@ -62,12 +65,14 @@ int main (int argc, char *argv[])
         mydestination = vm["destination"].as<std::string>();
     }
     helics::FederateInfo fi(myname);
+    std::cout<<"my Fedname is "<<myname<<std::endl;
     fi.loadInfoFromArgs(argc, argv);
     fi.logLevel = 5;
     std::shared_ptr<helics::Broker> brk;
     if (vm.count("startbroker") > 0)
     {
         brk = helics::BrokerFactory::create(fi.coreType, vm["startbroker"].as<std::string>());
+        std::cout<<"Broker is created sucessfully..."<<std::endl;
     }
 
     auto mFed = std::make_unique<helics::MessageFederate> (fi);
@@ -85,7 +90,7 @@ int main (int argc, char *argv[])
     mFed->enterExecutionState ();
     std::cout << "entered exec State\n";
     for (int i=1; i<10; ++i) {
-        std::string message = "message sent from "+name+"/"+mysource+" to "+target+" at time " + std::to_string(i);
+        std::string message = "The "+std::to_string(i)+"th JH message sent from "+name+"/"+mysource+" to "+target+" at time " + std::to_string(i);
         mFed->sendMessage(idsource, target, message.data(), message.size());
         std::cout << message << std::endl;
         auto newTime = mFed->requestTime (i);
@@ -147,13 +152,13 @@ bool argumentParser (int argc, const char * const *argv, po::variables_map &vm_m
         std::cout << opt << '\n';
         return true;
     }
-
+/*
     if (cmd_vm.count ("version") > 0)
     {
-        std::cout << helics::versionString << '\n';
+        std::cout << helics::versionString () << '\n';
         return true;
     }
-
+*/
     po::store (po::command_line_parser (argc, argv).options (opt).allow_unregistered().run (), vm_map);
 
     po::notify (vm_map);

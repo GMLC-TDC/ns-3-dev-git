@@ -22,7 +22,11 @@
 #include "ns3/applications-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 
+#include "ns3/helics-client-helper.h"
+#include "ns3/helics-server-helper.h"
 #include "ns3/helics-helper.h"
+
+#include <iostream>
 
 // Default Network Topology
 //
@@ -53,6 +57,7 @@ main (int argc, char *argv[])
   std::string endpoint2 = "endpoint2";
   std::string finalDest = "fed/endpoint2";
 
+  Packet::EnablePrinting();
   HelicsHelper helicsHelper;
 
   CommandLine cmd;
@@ -68,13 +73,13 @@ main (int argc, char *argv[])
     {
       LogComponentEnable ("HelicsExample", LOG_LEVEL_INFO);
       LogComponentEnable ("HelicsSimulatorImpl", LOG_LEVEL_LOGIC);
-      LogComponentEnable ("HelicsStaticSinkApplication", LOG_LEVEL_LOGIC);
-      LogComponentEnable ("HelicsStaticSourceApplication", LOG_LEVEL_LOGIC);
-      LogComponentEnable ("HelicsApplication", LOG_LEVEL_LOGIC);
+      LogComponentEnable ("HelicsClient", LOG_LEVEL_LOGIC);
+      LogComponentEnable ("HelicsServer", LOG_LEVEL_LOGIC);
     }
 
-  NS_LOG_INFO ("Calling helicsHelper.SetupApplicationFederate");
+  NS_LOG_INFO ("Calling helicsServerHelper.SetupApplicationFederate");
   helicsHelper.SetupApplicationFederate();
+  //helicsHelper.SetupFederate();
 
   nCsma = nCsma == 0 ? 1 : nCsma;
 
@@ -112,13 +117,23 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer csmaInterfaces;
   csmaInterfaces = address.Assign (csmaDevices);
 
-  ApplicationContainer apps1 = helicsHelper.InstallStaticSink (
-          csmaNodes.Get (nCsma), endpoint1, endpoint2);
+  //Application layer
+  uint16_t port = 8080;
+  
+  HelicsServerHelper helicsServerHelper("ns3::UdpSocketFactory");
+  ApplicationContainer apps1 = helicsServerHelper.InstallHelicsServer (
+          csmaNodes.Get (nCsma), endpoint2, finalDest);
   apps1.Start (Seconds (0.0));
   apps1.Stop (Seconds (10.0));
 
-  ApplicationContainer apps2 = helicsHelper.InstallStaticSource (
-          p2pNodes.Get (0), endpoint2, finalDest);
+  NS_LOG_INFO ("Start to configure Client node's application remote ip address and remote port...");
+  //Address RemoteAddress (InetSocketAddress (p2pInterfaces.GetAddress (0, 1), port));
+  HelicsClientHelper helicsClientHelper("ns3::UdpSocketFactory", csmaInterfaces.GetAddress (nCsma), port);
+
+  NS_LOG_INFO ("Start to install Client node's application...");
+
+  ApplicationContainer apps2 = helicsClientHelper.InstallHelicsClient (
+          p2pNodes.Get (0), endpoint1);
   apps2.Start (Seconds (0.0));
   apps2.Stop (Seconds (10.0));
 

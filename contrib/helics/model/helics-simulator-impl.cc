@@ -155,17 +155,20 @@ HelicsSimulatorImpl::ProcessOneEvent (void)
 {
   NS_LOG_FUNCTION (this);
   Scheduler::Event next = m_events->RemoveNext ();
+  NS_LOG_INFO ("We are at ProcessOneEvent... ");
 
   NS_ASSERT (next.key.m_ts >= m_currentTs);
   m_unscheduledEvents--;
 
-  NS_LOG_LOGIC ("handle " << next.key.m_ts);
+  //NS_LOG_LOGIC ("handle " << next.key.m_ts);
   m_currentTs = next.key.m_ts;
   m_currentContext = next.key.m_context;
   m_currentUid = next.key.m_uid;
+  NS_LOG_INFO ("This event time is "<<next.key.m_ts<<", id is "<<next.key.m_uid<<", context is "<<next.key.m_context);
   next.impl->Invoke ();
   next.impl->Unref ();
-
+  NS_LOG_INFO ("The event id "<< m_currentUid<<", has been processed at context "<<m_currentContext);
+  NS_LOG_INFO ("Then we start to process event with context ...");
   ProcessEventsWithContext ();
 }
 
@@ -178,11 +181,14 @@ HelicsSimulatorImpl::IsFinished (void) const
 void
 HelicsSimulatorImpl::ProcessEventsWithContext (void)
 {
+  NS_LOG_INFO ("We are at ProcessOneEventWithContext... ");
   if (m_eventsWithContextEmpty)
     {
+      NS_LOG_INFO ("Because the container of events from a different context is empty, we return without doing anything... ");
       return;
     }
-
+  
+  NS_LOG_INFO ("Start to swap queues... ");
   // swap queues
   EventsWithContext eventsWithContext;
   {
@@ -190,8 +196,10 @@ HelicsSimulatorImpl::ProcessEventsWithContext (void)
     m_eventsWithContext.swap(eventsWithContext);
     m_eventsWithContextEmpty = true;
   }
+  NS_LOG_INFO ("Swap queues ends and start to execute the events from a different context.. ");
   while (!eventsWithContext.empty ())
     {
+       NS_LOG_INFO ("This container is not empty, we insert the event to the main event list, m_events. "); 
        EventWithContext event = eventsWithContext.front ();
        eventsWithContext.pop_front ();
        Scheduler::Event ev;
@@ -244,17 +252,17 @@ HelicsSimulatorImpl::Run (void)
   while (!m_stop) 
     {
       // Only process events up until the granted time
-      NS_LOG_INFO ("Outer:     m_events->IsEmpty(): " << m_events->IsEmpty());
-      NS_LOG_INFO ("Outer:                  m_stop: " << m_stop);
-      NS_LOG_INFO ("Outer:          Next time ns-3: " << nextTime);
-      NS_LOG_INFO ("Outer:     Granted time helics: " << grantedTime);
+      //NS_LOG_INFO ("Outer:     m_events->IsEmpty(): " << m_events->IsEmpty());
+      //NS_LOG_INFO ("Outer:                  m_stop: " << m_stop);
+      //NS_LOG_INFO ("Outer:          Next time ns-3: " << nextTime);
+      //NS_LOG_INFO ("Outer:     Granted time helics: " << grantedTime);
       NS_LOG_INFO ("Outer: nextTime <= grantedTime: " << (nextTime<=grantedTime));
       while (!m_events->IsEmpty () && !m_stop && nextTime <= grantedTime) 
         {
           ProcessOneEvent ();
           nextTime = Next ();
-          NS_LOG_INFO ("Inner:     m_events->IsEmpty(): " << m_events->IsEmpty());
-          NS_LOG_INFO ("Inner:                  m_stop: " << m_stop);
+          //NS_LOG_INFO ("Inner:     m_events->IsEmpty(): " << m_events->IsEmpty());
+          //NS_LOG_INFO ("Inner:                  m_stop: " << m_stop);
           NS_LOG_INFO ("Inner:          Next time ns-3: " << nextTime);
           NS_LOG_INFO ("Inner:     Granted time helics: " << grantedTime);
           NS_LOG_INFO ("Inner: nextTime <= grantedTime: " << (nextTime<=grantedTime));
@@ -266,17 +274,19 @@ HelicsSimulatorImpl::Run (void)
           requested = Next ().GetSeconds ();
           NS_LOG_INFO ("Request:     Requesting time: " << requested);
           granted = helics_federate->requestTime (requested);
+          NS_LOG_INFO ("Hello the granted time is "<<granted);
           NS_LOG_INFO ("Request: Granted time helics: " << granted);
           grantedTime = Time::FromDouble (granted, Time::S);
           NS_LOG_INFO ("Request:   Granted time ns-3: " << grantedTime);
           while (helics_federate->hasMessage()) {
               NS_LOG_INFO ("Request: message detected");
               auto msg = helics_federate->getMessage();
-              std::cout << "Request: received message from " << msg->source << " at " << static_cast<double>(msg->time) << " ::" << msg->data.to_string() << '\n';
+              std::cout << "HELICS simulator Run function received message from " << msg->source << " at " << static_cast<double>(msg->time) << " ::" << msg->data.to_string() << '\n';
 
           }
           // A time request may have triggered new events, so update nextTime.
           nextTime = Next ();
+          NS_LOG_INFO ("After granted time, the next time is "<<nextTime);
         }
    }
 

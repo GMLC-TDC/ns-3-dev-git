@@ -58,7 +58,7 @@ def configure(conf):
         # bake.py uses ../../build, while ns-3-dev uses ../helics
     if not conf.env['WITH_HELICS']:
         conf.msg("Checking for HELICS location", False)
-        conf.report_optional_feature("helics", "HELICS Integration", False,
+        conf.report_optional_feature("helics", "NS-3 HELICS Integration", False,
                                      "HELICS not enabled (see option --with-helics)")
         # Add this module to the list of modules that won't be built
         # if they are enabled.
@@ -116,15 +116,10 @@ int main()
 
     conf.env['DEFINES_HELICS'] = ['NS3_HELICS']
 
-    retval = conf.check_nonfatal(fragment=helics_test_code, lib='helics-static', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
-    if retval:
-        conf.env['HELICS'] = retval
-        conf.env.append_value('LIB_HELICS', 'helics-static')
-    else:
-        conf.env['HELICS'] = conf.check(fragment=helics_test_code, lib='helics-staticd', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
-        conf.env.append_value('LIB_HELICS', 'helics-staticd')
+    conf.env['HELICS'] = conf.check(fragment=helics_test_code, lib='helics-static', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
 
-    conf.report_optional_feature("helics", "HELICS Integration", conf.env['HELICS'], "HELICS library not found")
+    conf.env.append_value('LIB_HELICS', 'helics-static')
+    conf.report_optional_feature("helics", "NS-3 HELICS Integration", conf.env['HELICS'], "HELICS library not found")
 
     if conf.env['HELICS']:
         conf.env['ENABLE_HELICS'] = True
@@ -148,14 +143,15 @@ def build(bld):
     module = bld.create_ns3_module('helics', ['core', 'internet'])
     module.source = [
         'model/helics.cc',
-        'model/helics-application.cc',
-        'model/helics-filter-application.cc',
-        'model/helics-static-sink-application.cc',
-        'model/helics-static-source-application.cc',
         'model/helics-simulator-impl.cc',
-        'model/helics-id-tag.cc',
         'helper/helics-helper.cc',
-        ]
+        'helper/helics-client-helper.cc',
+        'helper/helics-server-helper.cc',
+	    'model/helics-client.cc',  
+	    'model/helics-server.cc', 
+	    'model/qos-header.cc',   
+       ]
+
     module_test = bld.create_ns3_module_test_library('helics')
     module_test.source = [
         'test/helics-test-suite.cc',
@@ -168,17 +164,17 @@ def build(bld):
     headers.module = 'helics'
     headers.source = [
         'model/helics.h',
-        'model/helics-application.h',
-        'model/helics-filter-application.h',
-        'model/helics-static-sink-application.h',
-        'model/helics-static-source-application.h',
         'model/helics-simulator-impl.h',
-        'model/helics-id-tag.h',
         'helper/helics-helper.h',
+        'helper/helics-client-helper.h',
+        'helper/helics-server-helper.h',
+	    'model/helics-client.h',
+        'model/helics-server.h',
+	    'model/qos-header.h',  
         ]
 
     if bld.env.ENABLE_EXAMPLES:
         bld.recurse('examples')
 
-    # bld.ns3_python_bindings()
+    bld.ns3_python_bindings()
 

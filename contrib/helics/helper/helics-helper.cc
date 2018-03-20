@@ -8,7 +8,7 @@
 
 #include "ns3/helics.h"
 #include "ns3/helics-application.h"
-#include "ns3/helics-filter-application.h"
+//#include "ns3/helics-filter-application.h"
 #include "ns3/helics-static-sink-application.h"
 #include "ns3/helics-static-source-application.h"
 #include "ns3/helics-helper.h"
@@ -24,9 +24,7 @@ HelicsHelper::HelicsHelper()
 , timedelta(1.0)
 , coreinit("")
 {
-    m_factory_filter.SetTypeId (HelicsFilterApplication::GetTypeId ());
-    m_factory_sink.SetTypeId (HelicsStaticSinkApplication::GetTypeId ());
-    m_factory_source.SetTypeId (HelicsStaticSourceApplication::GetTypeId ());
+   
 }
 
 void
@@ -34,8 +32,7 @@ HelicsHelper::SetupFederate(void)
 {
   helics::FederateInfo fi (name);
   fi.coreType = helics::coreTypeFromString (core);
-  //fi.timeDelta = timedelta;
-  fi.timeDelta = helics::loadTimeFromString ("1ns");
+  fi.timeDelta = timedelta;
   if (!coreinit.empty()) {
     fi.coreInitString = coreinit;
   }
@@ -68,7 +65,7 @@ HelicsHelper::SetupFederate(int argc, const char *const *argv)
 void
 HelicsHelper::SetupFederate(std::string &jsonString)
 {
-  helics::FederateInfo fi = helics::loadFederateInfo (jsonString);
+  helics::FederateInfo fi = helics::LoadFederateInfo (jsonString);
   helics_federate = std::make_shared<helics::MessageFederate> (fi);
 }
 
@@ -77,7 +74,6 @@ HelicsHelper::SetupApplicationFederate(void)
 {
   SetupFederate ();
   helics_endpoint = helics_federate->registerEndpoint ("fout");
-
   GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::HelicsSimulatorImpl"));
 }
 
@@ -89,62 +85,6 @@ HelicsHelper::SetupCommandLine(CommandLine &cmd)
   cmd.AddValue ("core", "name of the core to connect to", core);
   cmd.AddValue ("timedelta", "the time delta of the federate", timedelta);
   cmd.AddValue ("coreinit", "the core initializion string", coreinit);
-}
-
-ApplicationContainer
-HelicsHelper::InstallFilter (Ptr<Node> node, const std::string &name) const
-{
-    ApplicationContainer apps;
-    Ptr<HelicsFilterApplication> app = m_factory_filter.Create<HelicsFilterApplication> ();
-    if (!app) {
-      NS_FATAL_ERROR ("Failed to create HelicsFilterApplication");
-    }
-    app->SetFilterName (name);
-    Ptr<Ipv4> net = node->GetObject<Ipv4>();
-    Ipv4InterfaceAddress interface_address = net->GetAddress(1,0);
-    Ipv4Address address = interface_address.GetLocal();
-    app->SetLocal(address, 1234);
-    node->AddApplication (app);
-    apps.Add (app);
-    return apps;
-}
-
-ApplicationContainer
-HelicsHelper::InstallStaticSink (Ptr<Node> node, const std::string &name, const std::string &destination, bool is_global) const
-{
-    ApplicationContainer apps;
-    Ptr<HelicsStaticSinkApplication> app = m_factory_sink.Create<HelicsStaticSinkApplication> ();
-    if (!app) {
-      NS_FATAL_ERROR ("Failed to create HelicsStaticSinkApplication");
-    }
-    app->SetEndpointName (name, is_global);
-    app->SetDestination (destination);
-    Ptr<Ipv4> net = node->GetObject<Ipv4>();
-    Ipv4InterfaceAddress interface_address = net->GetAddress(1,0);
-    Ipv4Address address = interface_address.GetLocal();
-    app->SetLocal(address, 1234);
-    node->AddApplication (app);
-    apps.Add (app);
-    return apps;
-}
-
-ApplicationContainer
-HelicsHelper::InstallStaticSource (Ptr<Node> node, const std::string &name, const std::string &destination, bool is_global) const
-{
-    ApplicationContainer apps;
-    Ptr<HelicsStaticSourceApplication> app = m_factory_source.Create<HelicsStaticSourceApplication> ();
-    if (!app) {
-      NS_FATAL_ERROR ("Failed to create HelicsStaticSinkApplication");
-    }
-    app->SetEndpointName (name, is_global);
-    app->SetDestination (destination);
-    Ptr<Ipv4> net = node->GetObject<Ipv4>();
-    Ipv4InterfaceAddress interface_address = net->GetAddress(1,0);
-    Ipv4Address address = interface_address.GetLocal();
-    app->SetLocal(address, 1234);
-    node->AddApplication (app);
-    apps.Add (app);
-    return apps;
 }
 
 }
