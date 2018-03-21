@@ -58,7 +58,7 @@ def configure(conf):
         # bake.py uses ../../build, while ns-3-dev uses ../helics
     if not conf.env['WITH_HELICS']:
         conf.msg("Checking for HELICS location", False)
-        conf.report_optional_feature("helics", "NS-3 HELICS Integration", False,
+        conf.report_optional_feature("helics", "HELICS Integration", False,
                                      "HELICS not enabled (see option --with-helics)")
         # Add this module to the list of modules that won't be built
         # if they are enabled.
@@ -116,10 +116,15 @@ int main()
 
     conf.env['DEFINES_HELICS'] = ['NS3_HELICS']
 
-    conf.env['HELICS'] = conf.check(fragment=helics_test_code, lib='helics-static', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
+    retval = conf.check_nonfatal(fragment=helics_test_code, lib='helics-static', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
+    if retval:
+        conf.env['HELICS'] = retval
+        conf.env.append_value('LIB_HELICS', 'helics-static')
+    else:
+        conf.env['HELICS'] = conf.check(fragment=helics_test_code, lib='helics-staticd', libpath=conf.env['LIBPATH_HELICS'], use='HELICS')
+        conf.env.append_value('LIB_HELICS', 'helics-staticd')
 
-    conf.env.append_value('LIB_HELICS', 'helics-static')
-    conf.report_optional_feature("helics", "NS-3 HELICS Integration", conf.env['HELICS'], "HELICS library not found")
+    conf.report_optional_feature("helics", "HELICS Integration", conf.env['HELICS'], "HELICS library not found")
 
     if conf.env['HELICS']:
         conf.env['ENABLE_HELICS'] = True
@@ -144,6 +149,9 @@ def build(bld):
     module.source = [
         'model/helics.cc',
         'model/helics-application.cc',
+        'model/helics-filter-application.cc',
+        'model/helics-static-sink-application.cc',
+        'model/helics-static-source-application.cc',
         'model/helics-simulator-impl.cc',
         'model/helics-id-tag.cc',
         'helper/helics-helper.cc',
@@ -161,6 +169,9 @@ def build(bld):
     headers.source = [
         'model/helics.h',
         'model/helics-application.h',
+        'model/helics-filter-application.h',
+        'model/helics-static-sink-application.h',
+        'model/helics-static-source-application.h',
         'model/helics-simulator-impl.h',
         'model/helics-id-tag.h',
         'helper/helics-helper.h',

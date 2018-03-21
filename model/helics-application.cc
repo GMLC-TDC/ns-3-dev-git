@@ -19,6 +19,8 @@
 #include <fstream>
 #include <vector>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "ns3/log.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/ipv6-address.h"
@@ -49,6 +51,21 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("HelicsApplication");
 
 NS_OBJECT_ENSURE_REGISTERED (HelicsApplication);
+
+std::string&
+HelicsApplication::SanitizeName (std::string &name)
+{
+  std::replace (name.begin(), name.end(), '/', '+');
+  return name;
+}
+
+std::string
+HelicsApplication::SanitizeName (const std::string &name)
+{
+  std::string copy = name;
+  std::replace (copy.begin(), copy.end(), '/', '+');
+  return copy;
+}
 
 TypeId
 HelicsApplication::GetTypeId (void)
@@ -122,22 +139,33 @@ void
 HelicsApplication::SetFilterName (const std::string &name)
 {
   NS_LOG_FUNCTION (this << name);
-  SetName(name);
-  Names::Add("helics_filter_"+name, this);
   m_filter_id = helics_federate->registerSourceFilter ("ns3_"+name, name);
-  using std::placeholders::_1;
-  std::function<void(std::unique_ptr<helics::Message>)> func;
-  func = std::bind (&HelicsApplication::FilterCallback, this, _1);
-  m_filterOp = std::make_shared<Ns3Operator> (func);
+  m_filterOp = std::make_shared<helics::MessageDestOperator> ([this](const std::string &src, const std::string &dest)
+      {
+          if (boost::starts_with(src, helics_federate->getName())) {
+              NS_LOG_INFO ("skipping rename, sent to self: " << src);
+              return dest;
+          }
+          else {
+              NS_LOG_INFO ("renaming: " << src);
+              return helics_federate->getName() + '/' + src;
+          }
+      });
   helics_federate->setFilterOperator (m_filter_id, m_filterOp);
+  SetEndpointName(name, false);
 }
 
 void
-HelicsApplication::SetEndpointName (const std::string &name)
+HelicsApplication::SetEndpointName (const std::string &name, bool is_global)
 {
-  NS_LOG_FUNCTION (this << name);
+  NS_LOG_FUNCTION (this << name << is_global);
   SetName(name);
-  m_endpoint_id = helics_federate->registerEndpoint (name);
+  if (is_global) {
+    m_endpoint_id = helics_federate->registerGlobalEndpoint (name);
+  }
+  else {
+    m_endpoint_id = helics_federate->registerEndpoint (name);
+  }
   using std::placeholders::_1;
   using std::placeholders::_2;
   std::function<void(helics::endpoint_id_t,helics::Time)> func;
@@ -150,7 +178,7 @@ HelicsApplication::SetName (const std::string &name)
 {
   NS_LOG_FUNCTION (this << name);
   m_name = name;
-  Names::Add("helics_"+name, this);
+  Names::Add (SanitizeName ("helics_"+name), this);
 }
 
 std::string
@@ -195,23 +223,28 @@ HelicsApplication::StartApplication (void)
 {
   NS_LOG_FUNCTION (this);
 
-  if (m_socket == 0)
-    {
-      TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-      m_socket = Socket::CreateSocket (GetNode (), tid);
-      if (Ipv4Address::IsMatchingType(m_localAddress) == true)
-        {
-          m_socket->Bind (InetSocketAddress (Ipv4Address::ConvertFrom(m_localAddress), m_localPort));
-        }
-      else if (Ipv6Address::IsMatchingType(m_localAddress) == true)
-        {
-          m_socket->Bind (Inet6SocketAddress (Ipv6Address::ConvertFrom(m_localAddress), m_localPort));
-        }
-      else
-        {
-          m_socket->Bind();
-        }
+  int retval = 1;
+
+  if (m_socket == 0) {
+    TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+    m_socket = Socket::CreateSocket (GetNode (), tid);
+    if (!m_socket) {
+      NS_FATAL_ERROR ("socket creation failed");
     }
+    if (Ipv4Address::IsMatchingType(m_localAddress) == true) {
+      retval = m_socket->Bind (InetSocketAddress (Ipv4Address::ConvertFrom(m_localAddress), m_localPort));
+    }
+    else if (Ipv6Address::IsMatchingType(m_localAddress) == true) {
+      retval = m_socket->Bind (Inet6SocketAddress (Ipv6Address::ConvertFrom(m_localAddress), m_localPort));
+    }
+    else {
+      retval = m_socket->Bind();
+    }
+
+    if (-1 == retval) {
+      NS_FATAL_ERROR ("failed to bind socket");
+    }
+  }
 
   m_socket->SetRecvCallback (MakeCallback (&HelicsApplication::HandleRead, this));
 
@@ -251,16 +284,22 @@ HelicsApplication::NewTag ()
 }
 
 void 
-HelicsApplication::FilterCallback (std::unique_ptr<helics::Message> message)
+HelicsApplication::DoFilter (std::unique_ptr<helics::Message> message)
 {
-  NS_LOG_FUNCTION (this << "Helics filter callback");
+  NS_LOG_FUNCTION (this << *message);
+}
+ 
+void 
+HelicsApplication::Send (std::string dest, std::unique_ptr<helics::Message> message)
+{
+  NS_LOG_FUNCTION (this << dest << *message);
  
   Ptr<Packet> p;
 
   // Find the HelicsApplication for the destination.
-  Ptr<HelicsApplication> to = Names::Find<HelicsApplication>("helics_"+message->dest);
+  Ptr<HelicsApplication> to = Names::Find<HelicsApplication>(SanitizeName ("helics_"+dest));
   if (!to) {
-    NS_FATAL_ERROR("failed HelicsApplication lookup to '" << message->dest << "'");
+    NS_FATAL_ERROR("failed HelicsApplication lookup to '" << dest << "'");
   }
 
   // Convert given Message into a Packet.
@@ -288,87 +327,113 @@ HelicsApplication::FilterCallback (std::unique_ptr<helics::Message> message)
   int delay_ns = (int) (m_rand_delay_ns->GetValue (m_jitterMinNs,m_jitterMaxNs) + 0.5);
 
   if (Ipv4Address::IsMatchingType (m_localAddress))
+  {
+    InetSocketAddress address = to->GetLocalInet();
+    if (~f_name.empty())
     {
-      InetSocketAddress address = to->GetLocalInet();
-      if (~f_name.empty())
-      {
-        std::ofstream outFile(f_name.c_str(), std::ios::app);
-        outFile << Simulator::Now ().GetNanoSeconds ()  << ","
-                << p->GetUid () << ","
-                << "s,"
-                << total_size << ","
-                << address.GetIpv4() << ","
-                << address.GetPort();
-        outFile.close();
-      }
-      NS_LOG_INFO ("At time '"
-          << Simulator::Now ().GetNanoSeconds () + delay_ns
-          << "'ns '"
-          << m_name
-          << "' sent "
-          << total_size
-          << " bytes to '"
-          << to->GetName()
-          << "' at address "
-          << address.GetIpv4()
-          << " port "
-          << address.GetPort()
-          << "' uid '"
-          << p->GetUid () <<"'");
-      //m_socket->SendTo(p, 0, address);
-      //Simulator::Schedule(NanoSeconds (delay_ns), &Socket::SendTo, m_socket, buffer_ptr, p->GetSize(), 0, address); //non-virtual method
-      int (Socket::*fp)(Ptr<Packet>, uint32_t, const Address&) = &Socket::SendTo;
-      Simulator::Schedule(NanoSeconds (delay_ns), fp, m_socket, p, 0, address); //virtual method
+      std::ofstream outFile(f_name.c_str(), std::ios::app);
+      outFile << Simulator::Now ().GetNanoSeconds ()  << ","
+        << p->GetUid () << ","
+        << "s,"
+        << total_size << ","
+        << address.GetIpv4() << ","
+        << address.GetPort();
+      outFile.close();
     }
+    NS_LOG_INFO ("At time '"
+        << Simulator::Now ().GetNanoSeconds () + delay_ns
+        << "'ns '"
+        << m_name
+        << "' sent "
+        << total_size
+        << " bytes to '"
+        << to->GetName()
+        << "' at address "
+        << address.GetIpv4()
+        << " port "
+        << address.GetPort()
+        << "' uid '"
+        << p->GetUid () <<"'");
+    //m_socket->SendTo(p, 0, address);
+    //Simulator::Schedule(NanoSeconds (delay_ns), &Socket::SendTo, m_socket, buffer_ptr, p->GetSize(), 0, address); //non-virtual method
+    int (Socket::*fp)(Ptr<Packet>, uint32_t, const Address&) = &Socket::SendTo;
+    Simulator::Schedule(NanoSeconds (delay_ns), fp, m_socket, p, 0, address); //virtual method
+  }
   else if (Ipv6Address::IsMatchingType (m_localAddress))
+  {
+    Inet6SocketAddress address = to->GetLocalInet6();
+    if (~f_name.empty())
     {
-      Inet6SocketAddress address = to->GetLocalInet6();
-      if (~f_name.empty())
-      {
-        std::ofstream outFile(f_name.c_str(), std::ios::app);
-        outFile << Simulator::Now ().GetNanoSeconds ()  << ","
-                << p->GetUid () << ","
-                << "s,"
-                << total_size << ","
-                << address.GetIpv6() << ","
-                << address.GetPort();
-        outFile.close();
-      }
-      NS_LOG_INFO ("At time '"
-          << Simulator::Now ().GetNanoSeconds () + delay_ns
-          << "'ns '"
-          << m_name
-          << "' sent "
-          << total_size
-          << " bytes to '"
-          << to->GetName()
-          << "' at address "
-          << address.GetIpv6()
-          << " port "
-          << address.GetPort()
-          << "' uid '"
-          << p->GetUid () <<"'");
-      //m_socket->SendTo(p, 0, address);
-      //Simulator::Schedule(NanoSeconds (delay_ns), &Socket::SendTo, m_socket, buffer_ptr, p->GetSize(), 0, address); //non-virtual method
-      int (Socket::*fp)(Ptr<Packet>, uint32_t, const Address&) = &Socket::SendTo;
-      Simulator::Schedule(NanoSeconds (delay_ns), fp, m_socket, p, 0, address); //virtual method
+      std::ofstream outFile(f_name.c_str(), std::ios::app);
+      outFile << Simulator::Now ().GetNanoSeconds ()  << ","
+        << p->GetUid () << ","
+        << "s,"
+        << total_size << ","
+        << address.GetIpv6() << ","
+        << address.GetPort();
+      outFile.close();
     }
+    NS_LOG_INFO ("At time '"
+        << Simulator::Now ().GetNanoSeconds () + delay_ns
+        << "'ns '"
+        << m_name
+        << "' sent "
+        << total_size
+        << " bytes to '"
+        << to->GetName()
+        << "' at address "
+        << address.GetIpv6()
+        << " port "
+        << address.GetPort()
+        << "' uid '"
+        << p->GetUid () <<"'");
+    //m_socket->SendTo(p, 0, address);
+    //Simulator::Schedule(NanoSeconds (delay_ns), &Socket::SendTo, m_socket, buffer_ptr, p->GetSize(), 0, address); //non-virtual method
+    int (Socket::*fp)(Ptr<Packet>, uint32_t, const Address&) = &Socket::SendTo;
+    Simulator::Schedule(NanoSeconds (delay_ns), fp, m_socket, p, 0, address); //virtual method
+  }
+  else {
+    NS_LOG_INFO ("At time '"
+        << Simulator::Now ().GetNanoSeconds () + delay_ns
+        << "'ns '"
+        << m_name
+        << "' did not recognize local address");
+    int (Socket::*fp)(Ptr<Packet>, uint32_t, const Address&) = &Socket::SendTo;
+    Simulator::Schedule(NanoSeconds (delay_ns), fp, m_socket, p, 0, to->GetLocalInet()); //virtual method
+  }
   ++m_sent;
 }
 
 void 
 HelicsApplication::EndpointCallback (helics::endpoint_id_t id, helics::Time time)
 {
-  NS_LOG_FUNCTION (this << "Helics endpoint callback");
+  NS_LOG_FUNCTION (this << m_name << id.value() << time);
+  DoEndpoint (id, time);
 }
  
+void 
+HelicsApplication::DoEndpoint (helics::endpoint_id_t id, helics::Time time)
+{
+  NS_LOG_FUNCTION (this << id.value() << time);
+  auto message = helics_federate->getMessage(id);
+  DoEndpoint (id, time, std::move (message));
+}
+ 
+void 
+HelicsApplication::DoEndpoint (helics::endpoint_id_t id, helics::Time time, std::unique_ptr<helics::Message> message)
+{
+  NS_LOG_FUNCTION (this << id.value() << time << *message);
+}
+
 InetSocketAddress HelicsApplication::GetLocalInet (void) const
 {
+  NS_LOG_FUNCTION (this);
   return InetSocketAddress(Ipv4Address::ConvertFrom(m_localAddress), m_localPort);
 }
 
 Inet6SocketAddress HelicsApplication::GetLocalInet6 (void) const
 {
+  NS_LOG_FUNCTION (this);
   return Inet6SocketAddress(Ipv6Address::ConvertFrom(m_localAddress), m_localPort);
 }
 
@@ -406,87 +471,77 @@ HelicsApplication::HandleRead (Ptr<Socket> socket)
                   << item->second->data.size() << " != " << size);
       }
 
-      // Send on the filtered Message
-      helics_federate->sendMessage (helics_endpoint, std::move (item->second));
-
       if (InetSocketAddress::IsMatchingType (from))
+      {
+        if (~f_name.empty())
         {
-          if (~f_name.empty())
-          {
-            std::ofstream outFile(f_name.c_str(), std::ios::app);
-            outFile << Simulator::Now ().GetNanoSeconds ()  << ","
-                    << packet->GetUid () << ","
-                    << "r,"
-                    << size << ","
-                    << InetSocketAddress::ConvertFrom (from).GetIpv4 () << ","
-                    << InetSocketAddress::ConvertFrom (from).GetPort () << ","
-                    << sdata << std::endl;
-            outFile.close();
-          }
-          NS_LOG_INFO ("At time '"
-                  << Simulator::Now ().GetNanoSeconds ()
-                  << "'ns '"
-                  << m_name
-                  << "' received "
-                  << size
-                  << " bytes at address "
-                  << InetSocketAddress::ConvertFrom (from).GetIpv4 ()
-                  << " port "
-                  << InetSocketAddress::ConvertFrom (from).GetPort ()
-                  << "' sdata '"
-                  << sdata
-                  << "' uid '"
-                  << packet->GetUid () <<"'");
+          std::ofstream outFile(f_name.c_str(), std::ios::app);
+          outFile << Simulator::Now ().GetNanoSeconds ()  << ","
+            << packet->GetUid () << ","
+            << "r,"
+            << size << ","
+            << InetSocketAddress::ConvertFrom (from).GetIpv4 () << ","
+            << InetSocketAddress::ConvertFrom (from).GetPort () << ","
+            << sdata << std::endl;
+          outFile.close();
         }
+        NS_LOG_INFO ("At time '"
+            << Simulator::Now ().GetNanoSeconds ()
+            << "'ns '"
+            << m_name
+            << "' received "
+            << size
+            << " bytes at address "
+            << InetSocketAddress::ConvertFrom (from).GetIpv4 ()
+            << " port "
+            << InetSocketAddress::ConvertFrom (from).GetPort ()
+            << "' sdata '"
+            << sdata
+            << "' uid '"
+            << packet->GetUid () <<"'");
+      }
       else if (Inet6SocketAddress::IsMatchingType (from))
+      {
+        if (~f_name.empty())
         {
-          if (~f_name.empty())
-          {
-            std::ofstream outFile(f_name.c_str(), std::ios::app);
-            outFile << Simulator::Now ().GetNanoSeconds ()  << ","
-                    << packet->GetUid () << ","
-                    << "r,"
-                    << size << ","
-                    << Inet6SocketAddress::ConvertFrom (from).GetIpv6 () << ","
-                    << Inet6SocketAddress::ConvertFrom (from).GetPort () << ","
-                    << sdata << std::endl;
-            outFile.close();
-          }
-          NS_LOG_INFO ("At time '"
-                  << Simulator::Now ().GetNanoSeconds ()
-                  << "'ns '"
-                  << m_name
-                  << "' received "
-                  << size
-                  << " bytes at address "
-                  << Inet6SocketAddress::ConvertFrom (from).GetIpv6 ()
-                  << " port "
-                  << Inet6SocketAddress::ConvertFrom (from).GetPort ()
-                  << "' sdata '"
-                  << sdata
-                  << "' uid '"
-                  << packet->GetUid () <<"'");
+          std::ofstream outFile(f_name.c_str(), std::ios::app);
+          outFile << Simulator::Now ().GetNanoSeconds ()  << ","
+            << packet->GetUid () << ","
+            << "r,"
+            << size << ","
+            << Inet6SocketAddress::ConvertFrom (from).GetIpv6 () << ","
+            << Inet6SocketAddress::ConvertFrom (from).GetPort () << ","
+            << sdata << std::endl;
+          outFile.close();
         }
+        NS_LOG_INFO ("At time '"
+            << Simulator::Now ().GetNanoSeconds ()
+            << "'ns '"
+            << m_name
+            << "' received "
+            << size
+            << " bytes at address "
+            << Inet6SocketAddress::ConvertFrom (from).GetIpv6 ()
+            << " port "
+            << Inet6SocketAddress::ConvertFrom (from).GetPort ()
+            << "' sdata '"
+            << sdata
+            << "' uid '"
+            << packet->GetUid () <<"'");
+      }
+      else {
+        NS_LOG_INFO ("unrecognized socket address type");
+      }
+
+      DoRead (std::move (item->second));
+
     }
 }
 
-/** HELICS message FilterOperator for ns3 */
-
-HelicsApplication::Ns3Operator::Ns3Operator (std::function<void(std::unique_ptr<helics::Message> message)> cb)
-{
-  setFilterCallback (cb);
-}
-
 void
-HelicsApplication::Ns3Operator::setFilterCallback (std::function<void(std::unique_ptr<helics::Message> message)> cb)
+HelicsApplication::DoRead (std::unique_ptr<helics::Message> message)
 {
-  filterCallback = cb;
-}
-
-std::unique_ptr<helics::Message>
-HelicsApplication::Ns3Operator::process (std::unique_ptr<helics::Message> message)
-{
-  return nullptr;
+  NS_LOG_FUNCTION (this << *message);
 }
 
 } // Namespace ns3

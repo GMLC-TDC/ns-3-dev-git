@@ -1,21 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright 2007 University of Washington
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
 #ifndef HELICS_APPLICATION_H
 #define HELICS_APPLICATION_H
 
@@ -31,6 +13,7 @@
 
 #include "helics-id-tag.h"
 #include "helics/helics.hpp"
+#include "helics/application_api/MessageOperators.hpp"
 
 namespace ns3 {
 
@@ -54,6 +37,9 @@ public:
    */
   static TypeId GetTypeId (void);
 
+  static std::string& SanitizeName (std::string &name);
+  static std::string SanitizeName (const std::string &name);
+
   HelicsApplication ();
 
   virtual ~HelicsApplication ();
@@ -72,7 +58,7 @@ public:
    * \brief set the named of this endpoint
    * \param name name
    */
-  void SetEndpointName (const std::string &name);
+  void SetEndpointName (const std::string &name, bool is_global);
   /**
    * \brief set the local address and port
    * \param ip local IPv4 address
@@ -99,27 +85,29 @@ public:
   Inet6SocketAddress GetLocalInet6 (void) const;
 
   /**
-   * \brief Handle a packet creation based on HELICS data.
-   *
-   * This function is called internally by HELICS.
+   * \brief Packet creation based on HELICS data sent to dest.
    */
-  void FilterCallback (std::unique_ptr<helics::Message> message);
+  void Send (std::string dest, std::unique_ptr<helics::Message> message);
 
   /**
    * \brief Receive a HELICS message.
    *
    * This function is called internally by HELICS.
    */
-  virtual void EndpointCallback (helics::endpoint_id_t id, helics::Time time);
+  void EndpointCallback (helics::endpoint_id_t id, helics::Time time);
 
 protected:
   virtual void DoDispose (void);
-
-private:
-
   virtual void StartApplication (void);
   virtual void StopApplication (void);
-  
+  virtual void DoFilter (std::unique_ptr<helics::Message> message);
+  virtual void DoEndpoint (helics::endpoint_id_t id, helics::Time time);
+  virtual void DoEndpoint (helics::endpoint_id_t id, helics::Time time, std::unique_ptr<helics::Message> message);
+  virtual void DoRead (std::unique_ptr<helics::Message> message);
+
+  helics::endpoint_id_t m_endpoint_id;
+
+private:
   /**
    * \brief Handle a packet reception.
    *
@@ -149,24 +137,9 @@ private:
 
   uint32_t m_next_tag_id;
   helics::filter_id_t m_filter_id;
-  helics::endpoint_id_t m_endpoint_id;
   std::map<uint32_t,std::unique_ptr<helics::Message> > m_messages;
 
-  class Ns3Operator : public helics::FilterOperator
-  {
-  public:
-    /** default constructor */
-    Ns3Operator () = default;
-    /** set the filter callback function in the constructor */
-    Ns3Operator (std::function<void(std::unique_ptr<helics::Message> message)> cb);
-    /** set the filter callback function */
-    void setFilterCallback (std::function<void(std::unique_ptr<helics::Message> message)> cb);
-  private:
-    std::function<void(std::unique_ptr<helics::Message> message)> filterCallback; //!<the filter callback function
-    virtual std::unique_ptr<helics::Message> process (std::unique_ptr<helics::Message> message) override;
-  };
-
-  std::shared_ptr<Ns3Operator> m_filterOp; //!< the filter operator for this application
+  std::shared_ptr<helics::MessageDestOperator> m_filterOp; //!< the filter operator for this application
 };
 
 } // namespace ns3
