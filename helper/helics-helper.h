@@ -6,8 +6,6 @@
 #include "ns3/core-module.h"
 #include "ns3/node-container.h"
 
-#include "ns3/helics.h"
-
 namespace ns3 {
 
 class HelicsHelper {
