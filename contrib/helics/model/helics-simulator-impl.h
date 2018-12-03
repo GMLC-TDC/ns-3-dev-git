@@ -77,8 +77,10 @@ public:
   virtual void SetScheduler (ObjectFactory schedulerFactory);
   virtual uint32_t GetSystemId (void) const; 
   virtual uint32_t GetContext (void) const;
+  virtual uint64_t GetEventCount (void) const;
 
-  virtual Time Next (void) const;
+
+    virtual Time Next (void) const;
 
 private:
   virtual void DoDispose (void);

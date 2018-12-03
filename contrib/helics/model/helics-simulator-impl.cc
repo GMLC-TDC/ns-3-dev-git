@@ -53,11 +53,10 @@ NS_OBJECT_ENSURE_REGISTERED (HelicsSimulatorImpl);
 TypeId
 HelicsSimulatorImpl::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::HelicsSimulatorImpl")
-    .SetParent<SimulatorImpl> ()
-    .SetGroupName ("Core")
-    .AddConstructor<HelicsSimulatorImpl> ()
-  ;
+  static TypeId tid = TypeId ("ns3::HelicsSimulatorImpl");
+    tid.SetParent<SimulatorImpl>();
+    tid.SetGroupName("Core");
+    tid.AddConstructor<HelicsSimulatorImpl>();
   return tid;
 }
 
@@ -147,7 +146,7 @@ uint32_t
 HelicsSimulatorImpl::GetSystemId (void) const
 {
   // Return HELICS federate ID
-  return helics_federate->getID ();
+  return helics_federate->getID().baseValue();
 }
 
 void
@@ -230,7 +229,7 @@ HelicsSimulatorImpl::Run (void)
 
   // Begin HELICS simulation
   NS_LOG_INFO ("Entering execution state");
-  helics_federate->enterExecutionState ();
+  helics_federate->enterExecutingMode ();
 
   double requested;
   helics::Time granted;
@@ -493,6 +492,12 @@ uint32_t
 HelicsSimulatorImpl::GetContext (void) const
 {
   return m_currentContext;
+}
+
+uint64_t
+HelicsSimulatorImpl::GetEventCount (void) const
+{
+  return m_eventsWithContext.size();
 }
 
 } // namespace ns3
