@@ -3,6 +3,7 @@
 import os
 
 from waflib import Options
+from waflib.Errors import WafError
 
 
 def options(opt):
@@ -22,7 +23,14 @@ def required_boost_libs(conf):
 
 
 def configure(conf):
-    conf.env['LIB_BOOST'] = ["boost_" + lib for lib in REQUIRED_BOOST_LIBS]
+    try:
+        conf.load('boost')
+        conf.check_boost(lib=" ".join(REQUIRED_BOOST_LIBS))
+    except WafError:
+        conf.report_optional_feature("helics", "helics integration", False,
+                                     "Could not load required Boost libraries")
+        conf.env['MODULES_NOT_BUILT'].append('helics')
+        return
 
     if Options.options.with_zmq:
         if os.path.isdir(Options.options.with_zmq):
